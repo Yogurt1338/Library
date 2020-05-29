@@ -1,0 +1,820 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <conio.h>
+#include <locale.h>
+#include <malloc.h>
+#include <time.h>
+#include <windows.h>
+#define _CRT_SECURE_NO_WARNINGS
+#define D_CRT_NONSTDC_NO_WARNINGS
+#define N 50
+#define B 30
+#define MAX 100
+#pragma warning(disable : 4996)
+
+struct books { unsigned long long int isbn; char author[N]; char title[N]; int all; int ava; };
+struct books book[MAX];
+
+struct students { char num[8]; char name[B]; char sname[B]; char otch[B]; char fak[4];  char napr[N]; };
+struct students student[MAX];
+
+struct users { char login[20]; char pass[20]; int stud; int book; };
+struct users user[MAX];
+
+int open();
+int open_students();
+void add_student(int studcount);
+void sub_student(int studcount);
+void add_book(int strcount);
+void sub_book(int strcount);
+void backup_book(int strcount);
+void backup_stud(int studcount);
+void recovery(int strcount);
+void recovery_stud(int studcount);
+
+void recovery_all(int strcount, int q);
+
+char* settime(struct tm* u);
+void Aut_search(int strcount);
+void stud_search(int studcount);
+int open_user();
+int acs(char* login, char* pass, int usercount);
+
+
+int main()
+{
+    
+    setlocale(LC_ALL, "Russian");   
+    int num;
+    int status;
+    int usercoun = open_user();
+    char pass[20], login[20];
+    int tr=0;
+    
+    for (; tr == 0;) 
+    {
+        printf("login: "); scanf("%s", login);
+        printf("password: "); scanf("%s", pass);
+        status = acs(login, pass, usercoun);
+        if (status != 0) tr = 1;
+    }
+    tr = 0;
+    if (status == 1)
+    {
+        printf("menu:\n 1.book \n 2.Student \n 3.Exit \n");
+        scanf("%d", &status);
+        for (; tr == 0;)
+        {
+            if (status == 2) tr = 1;
+            else if (status == 3) exit;
+            else if (status == 1) { tr = 1; status = 3; }
+            else printf("wrong number");
+        }
+        system("cls");
+    }
+    if (status == 2)
+    printf("menu:\n 1.Add student \n 2.Delete student \n 3.Do backup student \n 4.Recovery student \n 5.Search student \n 6.Exit \n");
+    if (status == 3)
+    printf("menu:\n 1.Add book \n 2.Delete book \n 3.Do backup book \n 4.Recovery \n 5.Find book by Author \n 6.Exit \n");
+    for (;;)
+    {
+    
+        int strcoun = open();
+        int studcoun = open_students();
+    
+        scanf("%d", &num);
+        if (status == 2)
+        {
+                 if (num == 1)
+                add_student(studcoun);
+            else if (num == 2)
+                sub_student(studcoun);
+            else if (num == 3)
+                backup_stud(studcoun);
+            else if (num == 4)
+                recovery_all(studcoun, 2);
+            else if (num == 5)
+                stud_search(studcoun);
+            else if (num == 6)
+                break;
+            else { printf("wrong num\n"); }
+        }
+        if (status == 3)
+        {
+            if (num == 1)
+                add_book(strcoun);
+            else if (num == 2)
+                sub_book(strcoun);
+            else if (num == 3)
+                backup_book(strcoun);
+            else if (num == 4)
+                recovery(strcoun);
+            else if (num == 5)
+                Aut_search(strcoun);
+            else if (num == 6)
+                break;
+            else { printf("wrong num\n"); }
+        }
+    }    
+        return 0;
+}
+
+int acs(char* login, char* pass, int usercount)
+{
+   int i = 0;
+    for (int y = 0; y < usercount; y++)
+    {
+        if ((strcmp(login, user[y].login) == 0) && (strcmp(pass, user[y].pass) == 0))
+        {
+            if ((user[y].stud == 1) && (user[y].book == 1))
+                i = 1;
+            if ((user[y].stud == 1) && (user[y].book == 0))
+                i = 2;
+            if ((user[y].stud == 0) && (user[y].book == 1))
+                i = 3;
+                break;
+        }
+    }
+    if (i == 0)
+        printf("Wrong login/pass\ntry again\n");
+    return i;
+}
+
+
+int open_user()
+{
+    FILE* u;
+    if ((u = fopen("users.csv", "r")) == NULL)
+    {
+        printf("Can't open users.csv");
+        exit(4);
+    }
+    int i;
+    for (i = 0; !feof(u); i++)
+    {
+        fscanf(u, "%[^;]%*c", user[i].login);
+        fscanf(u, "%[^;]%*c", user[i].pass);
+        fscanf(u, "%d", &user[i].stud);
+        getc(u);
+        fscanf(u, "%d", &user[i].book);
+        getc(u);
+    }
+    fclose(u);
+    return i;
+}
+
+int open()
+{
+    FILE* f;
+    if ((f = fopen("books.csv", "r")) == NULL)
+    {
+        printf("Can't open books.csv");
+        exit(1);
+    }
+    int i;
+    for (i = 0; !feof(f); i++)
+    {
+        fscanf(f, "%lld", &book[i].isbn);
+        getc(f);
+        fscanf(f, "%[^;]%*c", book[i].author);
+        fscanf(f, "%[^;]%*c", book[i].title);
+        fscanf(f, "%d", &book[i].all);
+        getc(f);
+        fscanf(f, "%d", &book[i].ava);
+        getc(f);
+    }
+    fclose(f);
+    return i;
+}
+
+
+////////////////
+// ДОБАВЛЕНИЕ //
+////////////////
+
+
+void add_book(int strcount)
+{
+    unsigned long long int isbn;
+    char author[N], title[N];
+    int all, ava;
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    FILE* f;
+    if ((f = fopen("books.csv", "a+")) == NULL)
+    {
+        printf("Can't open books.csv");
+        exit(1);
+    } 
+    printf("Введите ISBN книги, которую хотите добавить: ");
+    scanf("%lld", &isbn);
+
+    for (int y = 0; y < strcount; y++)
+    {
+        if (isbn == book[y].isbn)
+        {
+            printf("Can't add book");
+            exit(2);
+        }
+    }
+
+    char c;
+    int q = 0;
+    printf("author: ");   scanf("%s", author);
+    printf("title: ");
+
+    c = getchar();
+    while ((c = getchar()) != '\n')
+    {
+        title[q] = c; q++;
+    }
+    title[q] = '\0';
+
+    printf("all: ");      scanf("%d", &all);
+    printf("ava: ");      scanf("%d", &ava);
+
+    fprintf(f, "\n%lld;%s;%s;%d;%d", isbn, author, title, all, ava);
+
+    fclose(f);
+    printf("\n");
+}
+
+
+///////////
+// БЭКАП //
+///////////
+
+
+
+void backup_book(int strcount)
+{
+    int y;
+    FILE* f;
+    if ((f = fopen("books.csv", "r")) == NULL)
+    {
+        printf("Can't open books.csv");
+        exit(1);
+    }
+    char* a = (char*)malloc(strcount*(sizeof(struct books)));
+    for (y = 0; !feof(f); y++)
+    {
+        a[y] = getc(f);
+    }
+    a[y - 1] = '\0';
+
+    fclose(f);
+
+    struct tm* u;
+    char* stri;
+    const time_t timer = time(NULL);
+    u = localtime(&timer);
+    stri = settime(u);
+
+    char name[28] = "books_";
+    for (int lon = 6; stri[lon - 6] != '\0'; lon++)
+    {
+        name[lon] = stri[lon - 6];
+    }
+    name[19] = '.';
+    name[22] = '.';
+    name[23] = 'c';
+    name[24] = 's';
+    name[25] = 'v';
+    name[26] = '\0';
+
+    f = fopen(name, "w");
+
+    for (int e = 0; (a[e] != '\0'); e++)
+        fprintf(f, "%c", a[e]);
+
+    free(a);
+
+    fclose(f);
+
+    if ((f = fopen(name, "r")) != NULL)
+    {
+        printf("Success\n");
+        printf("Создан %s", name);
+    }
+    else printf("\nerror");
+    printf("\n");
+}
+
+char* settime(struct tm* u)
+{
+    char s[40];
+    char* tmp;
+    for (int i = 0; i < 40; i++) s[i] = 0;
+    int length = strftime(s, 40, "%d.%m.%Y %H.%M", u);
+    tmp = (char*)malloc(sizeof(s));
+    strcpy(tmp, s);
+    return(tmp);
+    free(tmp);
+}
+
+
+
+
+//////////////
+// УДАЛЕНИЕ //
+//////////////
+
+
+void sub_book(int strcount)
+{
+    unsigned long long int isbn;
+
+    FILE* f;
+    if ((f = fopen("books.csv", "r")) == NULL)
+    {
+        printf("Can't open books.csv");
+        exit(1);
+    }
+    char* a = (char*)malloc(strcount*(sizeof(struct books)));
+    int w = 0;
+
+    printf("Введите ISBN книги, которую хотите удалить: ");
+    scanf("%lld", &isbn);
+
+    for (int y = 0; y < strcount; y++)
+    {
+        if (isbn != book[y].isbn)
+        {
+            a[w] = getc(f);
+            while ((a[w] != '\n') && (!feof(f)))
+            {
+                w++;
+                a[w] = getc(f);
+            }
+            a[w] = '\n'; w++;
+        }
+        if (isbn == book[y].isbn)
+        {     
+            while ((getc(f) != '\n') && (!feof(f)))
+            {
+                ;
+            }
+        }
+    }
+    a[w - 1] = '\0';
+    fclose(f);
+    
+    f = fopen("books.csv", "w");
+
+    for (int e = 0; a[e] != '\0'; e++)
+        fprintf(f, "%c", a[e]);
+
+    free(a);
+    fclose(f);
+
+    printf("Книга успешно удалена\n");
+
+}
+
+
+/////////////////////
+// ПОИСК ПО АВТОРУ //
+/////////////////////
+
+
+void Aut_search(int strcount)
+{
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    char surname[N];
+    int i = 0;
+    printf("Введите Фамилию автора для поиска книги: ");
+    scanf("%s", surname);
+
+    for (int y = 0; y < strcount; y++)
+    {
+        if (strcmp(surname, book[y].author) == 0)
+        {
+            printf("ISBN: %lld \t ", book[y].isbn);
+            printf("Author: %s \t", book[y].author);
+            printf("Title: %s \t", book[y].title);
+            printf("All: %d \t", book[y].all);
+            printf("Use: %d\n", book[y].ava);
+        }
+    }
+    printf("\n");
+}
+
+
+//////////////////////////////
+// ВОССТАНОВЛЕНИЕ ИЗ БЭКАПА //
+//////////////////////////////
+
+
+void recovery(int strcount)
+{
+    int y;
+    char name[100];
+    int b = 0;
+    printf("Введите название в форме <<books_DD.MM.YYYY HH.MM.csv>>: ");
+    char c = getchar();
+    c = getchar();
+    while (c != '\n')
+    {
+        name[b] = c;
+        b++;
+        c = getchar();
+    }
+    name[b] = '\0';
+
+    FILE* f;
+    f = fopen(name, "r");
+    if (f == NULL)
+    {
+        printf("Can't open %s", name);
+        fclose(f);
+        exit(1);
+    }
+   
+        char* a = (char*)malloc((sizeof(struct books)));
+        for (y = 0; !feof(f); y++)
+        {
+            a[y] = getc(f);
+        }
+        a[y-1] = '\0';
+
+     fclose(f);
+     f = fopen("books.csv", "w");
+
+        for (int e = 0; (a[e] != '\0'); e++)
+        {
+            fprintf(f, "%c", a[e]);
+        }
+
+     fclose(f);
+   
+        if ((f = fopen(name, "r")) != NULL)
+        {
+            printf("Success\n");
+            printf("Books.csv восстановлен из %s", name);
+            fclose(f);
+        }
+        else printf("\nerror");
+        printf("\n");
+}
+
+
+
+////////////////////////////////////////////////////////////////////////
+////////////////// STUDENTS ///////////////////////////////////
+////////////////////////////////////////////////////////////////////
+
+
+int open_students()
+{
+    FILE* s;
+    if ((s = fopen("students.csv", "r")) == NULL)
+    {
+        printf("Can't open students.csv");
+        exit(1);
+    }
+    int i;
+    for (i = 0; !feof(s); i++)
+    {
+        fscanf(s, "%[^;]%*c", student[i].num);
+        fscanf(s, "%[^;]%*c", student[i].sname);
+        fscanf(s, "%[^;]%*c", student[i].name);
+        fscanf(s, "%[^;]%*c", student[i].otch);
+        fscanf(s, "%[^;]%*c", student[i].fak);
+        fscanf(s, "%[^'\n']%*c", student[i].napr);
+
+    }
+    fclose(s);
+    return i;
+}
+
+
+////////////////
+// ДОБАВЛЕНИЕ //
+////////////////
+
+
+void add_student(int studcount)
+{
+    char num[8];
+    char name[B];
+    char sname[B];
+    char otch[B]; 
+    char fak[4]; 
+    char napr[N];
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    FILE* s;
+    if ((s = fopen("students.csv", "a+")) == NULL)
+    {
+        printf("Can't open students.csv");
+        exit(3);
+    }
+    printf("Введите номер зачетки, которую хотите добавить: ");
+    scanf("%s", num);
+
+    int y;
+    for (y = 0; y < studcount; y++)
+    {
+        if (strcmp(num, student[y].num) == 0)
+        {
+            printf("Can't add student");
+            exit(2);
+        }
+    }
+    
+    printf("Фамилия: "); scanf("%s", sname);
+    printf("Имя: ");  scanf("%s", name);
+    printf("Отчество: "); scanf("%s", otch);
+    printf("факультет: "); scanf("%s", fak);
+    printf("Направление: ");  
+    int q = 0;
+    char c = getchar();
+    while ((c = getchar()) != '\n')
+    {
+        napr[q] = c; q++;
+    }
+    napr[q] = '\0';
+    
+    fprintf(s, "\n%s;", num);
+    fprintf(s, "%s;", sname);
+    fprintf(s, "%s;", name);
+    fprintf(s, "%s;", otch);
+    fprintf(s, "%s;", fak);
+    fprintf(s, "%s", napr);
+
+    fclose(s);
+    printf("\n");
+}
+
+
+
+////////////////
+// УДАЛЕНИЕ //
+////////////////
+
+void sub_student(int studcount)
+{
+    char num[8];
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    FILE* s;
+    if ((s = fopen("students.csv", "a+")) == NULL)
+    {
+        printf("Can't open students.csv");
+        exit(3);
+    }
+    printf("Введите номер зачетки, которую хотите удалить: ");
+    scanf("%s", num);
+   
+    char* a = (char*)malloc((sizeof(struct students)));
+    int w = 0;
+
+    for (int y = 0; y < studcount; y++)
+    {
+        if (strcmp(num, student[y].num) == 0)
+        {
+            while ((getc(s) != '\n') && (!feof(s)))
+            {
+                ;
+            }
+        }
+        if (strcmp(num, student[y].num) != 0)
+        {
+            a[w] = getc(s);
+            while ((a[w] != '\n') && (!feof(s)))
+            {
+                w++;
+                a[w] = getc(s);
+            }
+            a[w] = '\n'; w++;
+        }
+    }
+    a[w - 1] = '\0';
+    fclose(s);
+
+    s = fopen("students.csv", "w");
+
+    for (int e = 0; a[e] != '\0'; e++)
+        fprintf(s, "%c", a[e]);
+
+    free(a);
+    fclose(s);
+
+    printf("Студент успешно удален\n");
+}
+
+///////////
+// БЭКАП //
+///////////
+
+void backup_stud(int studcount)
+{
+    int y;
+
+    FILE* s;
+    if ((s = fopen("students.csv", "r")) == NULL)
+    {
+        printf("Can't open students.csv");
+        exit(3);
+    }
+
+    char* a = (char*)malloc(studcount * (sizeof(struct books)));
+    for (y = 0; !feof(s); y++)
+    {
+        a[y] = getc(s);
+    }
+    a[y - 1] = '\0';
+
+    fclose(s);
+
+    struct tm* u;
+    char* stri;
+    const time_t timer = time(NULL);
+    u = localtime(&timer);
+    stri = settime(u);
+
+
+    char name[31] = "students_";
+    for (int lon = 9; stri[lon - 9] != '\0'; lon++)
+    {
+        name[lon] = stri[lon - 9];
+    }
+    name[22] = '.';
+    name[25] = '.';
+    name[26] = 'c';
+    name[27] = 's';
+    name[28] = 'v';
+    name[29] = '\0';
+
+    s = fopen(name, "w");
+
+    for (int e = 0; (a[e] != '\0'); e++)
+        fprintf(s, "%c", a[e]);
+
+    free(a);
+    fclose(s);
+
+    if ((s = fopen(name, "r")) != NULL)
+    {
+        printf("Success\n");
+        printf("Создан %s", name);
+    }
+    else printf("\nerror");
+    printf("\n");
+}
+
+
+//////////////////////////////
+// ВОССТАНОВЛЕНИЕ ИЗ БЭКАПА //
+//////////////////////////////
+
+
+void recovery_stud(int studcount)
+{
+    int y;
+    char name[100];
+    int b = 0;
+    printf("Введите название в форме <<students_DD.MM.YYYY HH.MM.csv>>: ");
+    char c = getchar();
+    while (c != '\n')
+    {
+        name[b] = c;
+        b++;
+        c = getchar();
+    }
+    name[b] = '\0';
+
+    FILE* s;
+    if ((s = fopen(name, "r")) == NULL)
+    {
+        printf("Can't open students.csv\n Проверьте название файла");
+        exit(3);
+    }
+
+    char* a = (char*)malloc(studcount * (sizeof(struct students)));
+    for (y = 0; !feof(s); y++)
+    {
+        a[y] = getc(s);
+    }
+    a[y - 1] = '\0';
+    fclose(s);
+
+    s = fopen("students.csv", "w");
+    for (int e = 0; (a[e] != '\0'); e++)
+        fprintf(s, "%c", a[e]);
+
+    free(a);
+    fclose(s);
+
+    if ((s = fopen(name, "r")) != NULL)
+    {
+        printf("Success\n");
+        printf("students.csv восстановлен из %s", name);
+        fclose(s);
+    }
+    else printf("\n Произошла ошибка");
+    printf("\n");
+}
+
+/////////////////////
+// ПОИСК ПО ФАМИЛИИ //
+/////////////////////
+
+
+void stud_search(int studcount)
+{
+    SetConsoleCP(1251);
+    SetConsoleOutputCP(1251);
+    setlocale(LC_ALL, "Russian");
+    char surname[N];
+    printf("Введите Фамилию Студента: ");
+    scanf("%s", surname);
+
+    for (int y = 0; y < studcount; y++)
+    {
+        if (strcmp(surname, student[y].sname) == 0)
+        {
+            printf("Зачетка %s \t ", student[y].num);
+            printf("Фамилия: %s \t", student[y].sname);
+            printf("Имя: %s \t", student[y].name);
+            printf("Отчество: %s \t", student[y].otch);
+            printf("Факультет: %s\t", student[y].fak);
+            printf("Направление: %s\n", student[y].napr);
+        }
+    }
+    printf("\n");
+}
+
+
+void recovery_all(int strcount,int q)
+{
+    int y;
+    char name[MAX];
+    int b = 0;
+    
+    if (q == 1)
+        printf("Введите название в форме <<books_DD.MM.YYYY HH.MM.csv>>: ");
+    if (q == 2)
+        printf("Введите название в форме <<students_DD.MM.YYYY HH.MM.csv>>: ");
+
+    char c = getchar();
+    c = getchar();
+    while (c != '\n')
+    {
+        name[b] = c;
+        b++;
+        c = getchar();
+    }
+    name[b] = '\0';
+
+    FILE* f;
+    if ((f = fopen(name, "r")) == NULL)
+    {
+        if (q == 1)
+            printf("Can't open books.csv\n Проверьте название файла");
+        if (q == 2)
+            printf("Can't open students.csv\n Проверьте название файла");
+        exit(3);
+    }
+
+        char* a = (char*)malloc(strcount * (sizeof(struct students)));
+        if (q == 1)
+        {
+            free(a);
+            char* a = (char*)malloc(strcount * (sizeof(struct books)));
+        }
+
+    for (y = 0; !feof(f); y++)
+    {
+        a[y] = getc(f);
+    }
+    a[y - 1] = '\0';
+
+    fclose(f);
+
+    if (q == 1)
+        f = fopen("books.csv", "w");
+    if (q == 2)
+        f = fopen("students.csv", "w");
+
+    for (int e = 0; (a[e] != '\0'); e++)
+        fprintf(f, "%c", a[e]);
+
+    free(a);
+    fclose(f);
+
+ //   if ((f = fopen(name, "r")) != NULL)
+ //   {
+ //       printf("Success\n");
+ //       printf("Файл восстановлен из %s", name);
+ //       fclose(f);
+ //   }
+ //   else printf("\nerror");
+ //   printf("\n");
+}
