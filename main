@@ -1062,6 +1062,7 @@ void Booktake(int studbook, int strcount, int studcount)
     if (checkbook == 1)
     {
         printf("Книги все в библиотеке\n");   
+        checkstudent = 1;
     }
 
     if (checkbook == 2)
