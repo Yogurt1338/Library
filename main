@@ -41,6 +41,7 @@ void Recovery(int strcount, int q);
 void Backup(int strcount, int q);
 
 char* settime(struct tm* u);
+char* settm(struct tm* u);
 void SeacrhByAuthor(int strcount);
 void SearchBySurname(int studcount);
 
@@ -53,7 +54,10 @@ void Bookgive(int studbook, int strcount, int studcount);
 void Booktake(int studbook, int strcount, int studcount);
 int StrInt(char* tmp, char* newtmp);
 
+void log(char* login, char* men);
+
 FILE* file;
+
 
 void Valid(int q)
 {
@@ -153,22 +157,43 @@ int main()
         if (status == 2)
         {
             system("cls");
-            if ((num == 0) && (Adm == 1))
+           if ((num == 0) && (Adm == 1))
                 status = 1;
             else if (num == 1)
+            {
+                char a[18] = {"Student Add"}; log(login, a);
                 StudentAdd(studcoun);
+            }
             else if (num == 2)
-                StudentDelete(studcoun, studbook);
+            {
+                char a[18] = { "Student Delete" }; log(login, a);
+                StudentDelete(studcoun, studbook); 
+            }
             else if (num == 3)
+            {
+                char a[18] = { "Backup Stud" }; log(login, a);
                 Backup(studcoun, 2);
+            }
             else if (num == 4)
+            {
+                char a[18] = { "Recovery Stud" }; log(login, a);
                 Recovery(studcoun, 2);
+            }
             else if (num == 5)
+            {
+                char a[18] = { "Search Surname" }; log(login, a);
                 SearchBySurname(studcoun);
+            }
             else if (num == 6)
+            {
+                char a[18] = { "Check Info Stud" }; log(login, a);
                 CheckInfoStud(studbook, strcoun, studcoun);
+            }
             else if (num == 7)
+            {
+                char a[18] = { "Exit" }; log(login, a);
                 break;
+            }
             else { printf("wrong num\n"); }
         }
         if (status == 3)
@@ -177,23 +202,50 @@ int main()
             if ((num == 0) && (Adm == 1))
                 status = 1;
             else if (num == 1)
+            {
+                char a[18] = { "Book Add" }; log(login, a);
                 BookAdd(strcoun);
+            }
             else if (num == 2)
+            {
+                char a[18] = { "Book Delete" }; log(login, a);
                 BookDelete(strcoun, studbook);
+            }
             else if (num == 3)
+            {
+                char a[18] = { "Backup Book" }; log(login, a);
                 Backup(strcoun, 1);
+            }
             else if (num == 4)
+            {
+                char a[18] = { "Recovery Book" }; log(login, a);
                 Recovery(strcoun, 1);
+            }
             else if (num == 5)
+            {
+                char a[18] = { "Search Author" }; log(login, a);
                 SeacrhByAuthor(strcoun);
+            }
             else if (num == 6)
+            {
+                char a[18] = { "Check Info" }; log(login, a);
                 CheckInfoBook(studbook, strcoun, studcoun);
+            }
             else if (num == 7)
+            {
+                char a[18] = { "Book Give" }; log(login, a);
                 Bookgive(studbook, strcoun, studcoun);
+            }
             else if (num == 8)
+            {
+                char a[18] = { "Book Take" }; log(login, a);
                 Booktake(studbook, strcoun, studcoun);
+            }
             else if (num == 9)
+            {
+                char a[18] = { "Exit" }; log(login, a);
                 break;
+            }
             else { printf("wrong num\n"); }
         }
     }
@@ -1159,4 +1211,38 @@ void Booktake(int studbook, int strcount, int studcount)
         fclose(file);
         printf("Книга принята\n");
     }
+}
+
+//////////////////////////
+//// ЛОГИРОВАНИЕ  ////////
+//////////////////////////
+
+
+char* settm(struct tm* u)
+{
+    char s[20];
+    char* tmp;
+    for (int i = 0; i < 20; i++) s[i] = 0;
+    int length = strftime(s, 20, "%d.%m.%Y %H:%M:%S", u);
+    tmp = (char*)malloc(sizeof(s));
+    strcpy(tmp, s);
+    return(tmp);
+    free(tmp);
+    free(s);
+}
+
+
+void log(char* login, char* men)
+{
+    struct tm* u;
+    char* stri;
+    const time_t timer = time(NULL);
+    u = localtime(&timer);
+    stri = settm(u);
+
+    file = fopen("library.log", "a");
+    fprintf(file, "%s;", stri);
+    fprintf(file, "%s;", login);
+    fprintf(file, "%s\n", men);
+    fclose(file);
 }
